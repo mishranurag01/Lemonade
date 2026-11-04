@@ -27,3 +27,17 @@
 .blackout{position:absolute;inset:0;background:#000;pointer-events:none;z-index:3}
 .vignette{z-index:4;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.story{height:180svh}}
+
+/* Scroll-through narrative: only the backdrop sticks; every line remains in normal flow. */
+.story{height:auto;min-height:480svh;position:relative}
+.sticky{height:100svh;position:sticky;top:0;z-index:0}
+.copy{position:relative;z-index:2;margin-top:-100svh;width:min(88%,760px);height:auto;min-height:480svh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0;padding:17svh 0 30svh;pointer-events:none}
+.chapter{position:relative;top:auto;display:block;margin:0 0 26svh;font:10px/1.5 monospace;letter-spacing:.24em;color:#c6a66b}
+.beat{position:relative;opacity:1!important;transform:none!important;max-width:690px;width:100%;margin:0 0 0;min-height:70svh;display:flex;align-items:center;justify-content:center;font:400 clamp(20px,3vw,39px)/1.4 Didot,"Bodoni MT",Georgia,serif;text-shadow:0 2px 12px #000,0 0 32px #000;letter-spacing:-.01em}
+.hint{position:relative;bottom:auto;margin-top:12svh;text-align:center;line-height:1.8}
+.room{background:linear-gradient(180deg,#30333b,#25252b 65%,#17181d);will-change:filter}
+.whiteLight{position:absolute;inset:0;background:rgba(245,247,255,.95);mix-blend-mode:screen;pointer-events:none;z-index:2}
+.blackout{z-index:3}
+.vignette{z-index:4;box-shadow:inset 0 0 120px 28px #0008;background:linear-gradient(180deg,#0006,transparent 30%,transparent 70%,#0006)}
+@media(max-width:700px){.story{height:auto;min-height:470svh}.copy{min-height:470svh;padding-top:14svh}.beat{min-height:72svh;font-size:clamp(20px,5.6vw,30px);line-height:1.48}.chapter{margin-bottom:23svh}}
+@media(prefers-reduced-motion:reduce){.story{height:auto;min-height:470svh}.copy{min-height:470svh}}
