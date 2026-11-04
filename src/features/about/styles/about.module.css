@@ -8,3 +8,12 @@
 .section,.footer{background-color:rgba(8,10,15,.91)}
 .section:nth-of-type(even){background-color:rgba(11,14,21,.92)}
 @media(prefers-reduced-motion:reduce){.heroVideo{animation:none}}
+
+/* Hero layering: visible stars behind the transparent black-backed video. */
+.hero{isolation:isolate;overflow:hidden;background:#020306;min-height:100svh}
+.hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(17,23,38,.30),transparent 65%)}
+.hero .starfield{position:absolute;inset:0;z-index:1;opacity:1;pointer-events:none}
+.hero .scene{position:absolute;inset:0;z-index:2;opacity:1;pointer-events:none;display:block}
+.hero .heroVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;mix-blend-mode:screen}
+.hero .heroText{position:relative;z-index:3}
+@media(max-width:700px){.hero .heroVideo{object-fit:cover;object-position:center}}
