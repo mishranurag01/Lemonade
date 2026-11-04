@@ -1,8 +1,9 @@
-.story{position:relative;min-height:480svh;background:#000;color:#f0ebe2;isolation:isolate}
+.story{position:relative;background:#000;color:#f0ebe2;isolation:isolate}
 .sticky{position:sticky;top:0;height:100svh;overflow:hidden;background:#000;z-index:0}
 .canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-.copy{position:relative;z-index:2;margin-top:-100svh;width:min(88%,760px);min-height:480svh;margin-left:auto;margin-right:auto;display:flex;flex-direction:column;align-items:center;padding:17svh 0 30svh;pointer-events:none;text-align:center}
-.chapter{display:block;margin:0 0 26svh;font:10px/1.5 monospace;letter-spacing:.24em;color:#c6a66b}
-.beat{position:relative;max-width:690px;width:100%;min-height:70svh;display:flex;align-items:center;justify-content:center;margin:0;font:400 clamp(20px,3vw,39px)/1.4 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.01em;text-shadow:0 2px 12px #000,0 0 32px #000;text-wrap:balance}
-@media(max-width:700px){.story,.copy{min-height:470svh}.copy{padding-top:14svh}.chapter{margin-bottom:23svh}.beat{min-height:72svh;font-size:clamp(20px,5.6vw,30px);line-height:1.48}}
-@media(prefers-reduced-motion:reduce){.story,.copy{min-height:470svh}}
+.copy{position:relative;z-index:2;margin:-100svh auto 0;width:min(96%,1500px);display:flex;flex-direction:column;align-items:center;padding:12svh 24px 18svh;pointer-events:none;text-align:center}
+.chapter{display:block;margin:0 0 8svh;font:10px/1.5 monospace;letter-spacing:.24em;color:#c6a66b}
+.beat{position:relative;width:100%;min-height:52svh;display:flex;align-items:center;justify-content:center;margin:0;font:400 clamp(20px,2.35vw,36px)/1.3 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.012em;text-shadow:0 2px 12px #000,0 0 32px #000;text-wrap:pretty}
+@media(min-width:1100px){.copy{width:min(98%,1700px);padding-inline:18px}.beat{font-size:clamp(22px,2.1vw,34px)}}
+@media(max-width:700px){.copy{width:min(94%,600px);padding:12svh 12px 15svh}.chapter{margin-bottom:6svh}.beat{min-height:55svh;font-size:clamp(20px,5.4vw,30px);line-height:1.42}}
+@media(prefers-reduced-motion:reduce){.beat{min-height:48svh}}
