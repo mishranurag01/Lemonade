@@ -14,7 +14,7 @@ export default function TorchStory(){
   const ref=useRef<HTMLElement>(null);
   const reduce=useReducedMotion();
   const {scrollYProgress}=useScroll({target:ref,offset:["start start","end end"]});
-  const brightness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.42,.58,.9,1.35,1.75]);
+  const brightness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.42,.75,1.8,4,6.5]);
   const roomFilter=useTransform(brightness,v=>`brightness(${v})`);
   const darkness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.96,.9,.72,.5,.35]);
   return <section ref={ref} className={styles.story} aria-label="The torch metaphor: a room gradually illuminated as the story scrolls">
