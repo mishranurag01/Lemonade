@@ -14,10 +14,9 @@ export default function TorchStory(){
   const ref=useRef<HTMLElement>(null);
   const reduce=useReducedMotion();
   const {scrollYProgress}=useScroll({target:ref,offset:["start start","end end"]});
-  const brightness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.42,.48,.62,.85,1.05]);
+  const brightness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.42,.58,.9,1.35,1.75]);
   const roomFilter=useTransform(brightness,v=>`brightness(${v})`);
   const darkness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.96,.9,.72,.5,.35]);
-  const whiteLight=useTransform(scrollYProgress,[0,.25,.45,.72,1],[0,0,.015,.04,.075]);
   return <section ref={ref} className={styles.story} aria-label="The torch metaphor: a room gradually illuminated as the story scrolls">
     <div className={styles.sticky}>
       <motion.div className={styles.room} style={{filter:reduce?"brightness(.9)":roomFilter}} aria-hidden="true">
@@ -28,7 +27,6 @@ export default function TorchStory(){
         <div className={styles.table}/>
         <div className={styles.chair}/>
         <div className={styles.plant}/>
-        <motion.div className={styles.whiteLight} style={{opacity:reduce?.05:whiteLight}}/>
         <motion.div className={styles.blackout} style={{opacity:reduce?.4:darkness}}/>
         <div className={styles.vignette}/>
       </motion.div>
