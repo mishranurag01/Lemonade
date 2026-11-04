@@ -15,11 +15,12 @@ export default function TorchStory(){
   const reduce=useReducedMotion();
   const {scrollYProgress}=useScroll({target:ref,offset:["start start","end end"]});
   const brightness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.32,.4,.85,1.8,2.5]);
+  const roomFilter=useTransform(brightness,v=>`brightness(${v})`);
   const darkness=useTransform(scrollYProgress,[0,.2,.42,.7,1],[.96,.92,.72,.28,0]);
   const whiteLight=useTransform(scrollYProgress,[0,.25,.45,.72,1],[0,0,.08,.25,.37]);
   return <section ref={ref} className={styles.story} aria-label="The torch metaphor: a room gradually illuminated as the story scrolls">
     <div className={styles.sticky}>
-      <motion.div className={styles.room} style={{filter:reduce?"brightness(1.5)":useTransform(brightness,v=>`brightness(${v})`)}} aria-hidden="true">
+      <motion.div className={styles.room} style={{filter:reduce?"brightness(1.5)":roomFilter}} aria-hidden="true">
         <div className={styles.backWall}/>
         <div className={styles.floor}/>
         <div className={styles.window}/>
