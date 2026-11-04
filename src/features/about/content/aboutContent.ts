@@ -1,11 +1,11 @@
 export const aboutContent = {
   "brand": {
     "name": "PURVAPHALGUNI",
-    "homeUrl": "https://purvaphalguni.com/",
+    "homeUrl": "https://test.purvaphalguni.com/",
     "motto": "THE SKY IS A MAP, NOT A VERDICT."
   },
   "hero": {
-    "eyebrow": "About PurvaPhalguni",
+    "eyebrow": "PurvaPhalguni",
     "headline": "Where Ancient Wisdom Meets Modern Curiosity.",
     "statement": "The sky is a map, not a verdict."
   },
@@ -47,7 +47,7 @@ export const aboutContent = {
         "One question led to another. Vedic Astrology opened the door to traditional planetary interpretations. Cartomancy introduced another language of symbols and reflection. Ayurveda provided the academic environment in which the earliest questions had emerged.",
         "Eventually, technology offered a way to bring those interests together.",
         "I was still only an idea.",
-        "But I was beginning to take shape."
+        "But I was beginning to take shape......"
       ]
     },
     {
@@ -58,7 +58,7 @@ export const aboutContent = {
         "Why am I called PurvaPhalguni?",
         "My name comes from Purva Phalguni, one of the 27 Nakshatras of Vedic Astrology.",
         "Traditionally associated with Leo and ruled by Venus, or Shukra, this Nakshatra carries symbolic associations that fascinated my founder.",
-        "In Hindu tradition, Shukracharya is associated with knowledge and the legendary Mritasanjivani Vidya, a mythical power of restoring life.",
+        "In Hindu tradition, Shukracharya is associated with knowledge and the legendary Mritasanjivani Vidya, a power of restoring life.",
         "Venus also carries traditional associations with beauty, harmony, refinement, and aesthetics.",
         "Those ideas eventually influenced my identity.",
         "But there was something more personal.",
