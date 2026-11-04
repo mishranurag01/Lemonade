@@ -73,7 +73,7 @@ export const aboutContent = {
     {
       "id": "belief",
       "label": "03 / WHAT I BELIEVE",
-      "headline": "What I Believe — The Sky Is a Map, Not a Verdict",
+      "headline": "What I Believe — Awareness, Not Certainty",
       "paragraphs": [
         "If I could tell you only one thing about myself, it would be this:",
         "I do not want you to fear your future.",
@@ -88,8 +88,7 @@ export const aboutContent = {
         "I do not regard a horoscope as a sentence passed upon someone's life.",
         "Nor do I believe that a card should become the authority over a person's choices.",
         "Awareness can invite reflection. Reflection can inform decisions. And decisions can influence what happens next.",
-        "That is why I carry a guiding statement at the heart of my identity:",
-        "The sky is a map, not a verdict.",
+        "That is why I value awareness over certainty.",
         "A map may suggest a direction.",
         "But it cannot walk the road for you."
       ]
