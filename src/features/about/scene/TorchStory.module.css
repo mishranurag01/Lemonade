@@ -22,3 +22,8 @@
 .progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:#ffffff16}.progress>div{height:100%;background:#c6a66b;transform-origin:left}
 @media(max-width:700px){.story{height:470svh}.backWall{inset:12% 4% 26%}.window{left:10%}.cabinet{right:8%;width:24%}.table{left:31%;width:39%}.chair{left:14%}.vignette{box-shadow:inset 0 0 100px 40px #000b}.light{background:radial-gradient(ellipse 45% 37% at 50% 53%,rgba(255,236,184,.65),rgba(227,188,118,.22) 42%,transparent 85%)}}
 @media(prefers-reduced-motion:reduce){.story{height:100svh}.light{filter:none}}
+
+/* The scene begins genuinely dark; scroll reveals the set underneath. */
+.blackout{position:absolute;inset:0;background:#000;pointer-events:none;z-index:3}
+.vignette{z-index:4;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.story{height:180svh}}
