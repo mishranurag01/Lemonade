@@ -76,9 +76,9 @@ void main(){
  vec3 n=normalize(vec3(-(scene(q+vec2(e,0.)).a-s.a)/e,-(scene(q+vec2(0.,e)).a-s.a)/e,1.));
  vec3 light=normalize(vec3(dl,.32));
  float diffuse=max(dot(n,light),0.);
- float ambient=.002+.009*smoothstep(.15,.8,uP)+.025*smoothstep(.55,1.,uP);
+ float ambient=.001+.006*smoothstep(.62,1.,uP);
  vec3 warm=vec3(1.,.81,.58);
- vec3 col=s.rgb*(vec3(ambient)+warm*diffuse*att*uI*2.4);
+ vec3 col=s.rgb*(vec3(ambient*uI)+warm*diffuse*att*uI*2.4);
  col+=warm*pow(max(dot(n,normalize(light+vec3(0.,0.,1.))),0.),38.)*att*uI*.2;
  vec2 beam=uL-uO;float t=clamp(dot(q-uO,beam)/max(dot(beam,beam),.0001),0.,1.);
  float dist=length(q-uO-beam*t);float width=mix(.015,rad*.75,t);
@@ -125,12 +125,16 @@ export default function TorchStory(){
    const bounds=el.getBoundingClientRect(),distance=Math.max(1,bounds.height-window.innerHeight);
    const target=Math.max(0,Math.min(1,-bounds.top/distance));
    progress+=(target-progress)*(1-Math.exp(-dt*5));
-   const p=reduced?Math.max(progress,.2):progress,t=(now-start)/1000;
-   const [x,y]=position(smooth(.03,.85,p),t),intensity=.08+.92*smooth(0,.03,p);
+   const p=progress,t=(now-start)/1000;
+   // First two story beats stay dark; third introduces the dim torch.
+   // Fourth starts the sweep, fifth keeps the beam active.
+   const torchOn=smooth(.43,.55,p),sweep=smooth(.61,.92,p);
+   const [x,y]=position(sweep,reduced?0:t);
+   const intensity=torchOn*(.22+.78*smooth(.58,.72,p));
    if(gl&&program){
     gl.useProgram(program);gl.uniform2f(uniforms.uRes,cv.width,cv.height);gl.uniform2f(uniforms.uL,x,y);
     gl.uniform2f(uniforms.uO,.3,-.5*k-.25);gl.uniform1f(uniforms.uT,t);gl.uniform1f(uniforms.uI,intensity);
-    gl.uniform1f(uniforms.uP,p);gl.uniform1f(uniforms.uM,reduced?.1:1);gl.uniform1f(uniforms.uK,k);
+    gl.uniform1f(uniforms.uP,sweep);gl.uniform1f(uniforms.uM,reduced?.1:1);gl.uniform1f(uniforms.uK,k);
     gl.drawArrays(gl.TRIANGLES,0,3);
     avg=avg*.95+dt*.05;
     if(++frames%90===0){const max=Math.min(window.devicePixelRatio||1,1.25);const next=avg>.026?Math.max(.5,scale*.85):avg<.014?Math.min(max,scale*1.1):scale;if(Math.abs(next-scale)>.01){scale=next;cv.width=Math.round(width*scale);cv.height=Math.round(height*scale);gl.viewport(0,0,cv.width,cv.height);}}
