@@ -1,48 +1,22 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pepperpotts — Letterhead Print Test</title>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; background: #f1f1f1; font-family: Arial, sans-serif; }
-  .toolbar { padding: 14px; text-align: center; }
-  button { padding: 10px 24px; background: white; color: #111; border: 1px solid #777; border-radius: 4px; cursor: pointer; }
-  .sheet { position: relative; width: 210mm; height: 297mm; margin: 0 auto 24px; background: white; overflow: hidden; box-shadow: 0 2px 14px #0002; }
-  .top, .bottom { position: absolute; left: 0; right: 0; height: 18mm; overflow: hidden; }
-  .top { top: 0; } .bottom { bottom: 0; transform: rotate(180deg); }
-  .stripe { position: absolute; left: 0; right: 0; }
-  .stripe.black { top: 7mm; height: 5mm; background: #171717; }
-  .stripe.gold { top: 5.4mm; height: 1.5mm; background: #c99b72; }
-  .stripe.light { top: 12.5mm; height: .55mm; background: #dfb998; }
-  .motif { position: absolute; top: 0; left: 20%; width: 22mm; height: 20mm; transform: skew(28deg); background: linear-gradient(90deg,#171717 0 39%,#fff 39% 46%,#c99b72 46% 74%,#fff 74% 80%,#c99b72 80%); }
-  .masthead { position: absolute; top: 25mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; align-items: center; }
-  .brand { font-family: Georgia, 'Times New Roman', serif; font-size: 21pt; font-weight: 700; line-height: 1; }
-  .subtitle { font-size: 7pt; margin-top: 2mm; }
-  .site { font-size: 8pt; font-style: italic; }
-  .footline { position: absolute; bottom: 23mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; font-size: 8pt; }
-  @page { size: A4 portrait; margin: 0; }
-  @media print {
-    html, body { width: 210mm; height: 297mm; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    .toolbar { display: none !important; }
-    .sheet { margin: 0; box-shadow: none; page-break-after: avoid; }
-  }
-  @media screen and (max-width: 820px) { .sheet { transform-origin: top left; } .viewport { overflow-x: auto; } }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pepperpotts Print Test</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: white; }
+    body { font-family: Arial, sans-serif; }
+    button { margin: 16px; padding: 10px 18px; cursor: pointer; }
+  </style>
 </head>
 <body>
-<div class="toolbar"><button type="button" onclick="window.print()">Print</button></div>
-<div class="viewport">
-  <main class="sheet" aria-label="Blank PurvaPhalguni A4 letterhead">
-    <div class="top"><div class="stripe gold"></div><div class="stripe black"></div><div class="stripe light"></div><div class="motif"></div></div>
-    <header class="masthead">
-      <div><div class="brand">PurvaPhalguni</div><div class="subtitle">MEDICAL ASTROLOGY &amp; CARTOMANCY</div></div>
-      <div class="site">www.purvaphalguni.com</div>
-    </header>
-    <footer class="footline"><span>support@purvaphalguni.com</span><span>Page 1 of 1</span></footer>
-    <div class="bottom"><div class="stripe gold"></div><div class="stripe black"></div><div class="stripe light"></div><div class="motif"></div></div>
-  </main>
-</div>
+  <button type="button" id="print">Print</button>
+  <script>
+    document.getElementById('print').addEventListener('click', () => {
+      // Open the original uploaded PDF, without recreating or altering its letterhead.
+      window.open('./PurvaPhalguni%20Letterhead.pdf', '_blank', 'noopener');
+    });
+  </script>
 </body>
 </html>
