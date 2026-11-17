@@ -34,14 +34,31 @@ async function saveIndex(index) {
 }
 function publicRecord(entry) {
   return { reference:entry.reference, status:entry.status, issuedAt:entry.issuedAt,
-    customerNameMasked:entry.customerNameMasked ?? (entry.reference===demoReference ? maskCustomerName(demo.customer.fullName) : null),
+    customerNameMasked:entry.reference===demoReference ? maskCustomerName(demo.customer.fullName) : (entry.customerNameMasked ?? null),
     consultationMode:entry.consultationMode ?? (entry.reference===demoReference ? demo.service.deliveryMode : null),
     service:entry.service, amount:entry.amount, currency:entry.currency,
     fingerprintSha256:entry.fingerprintSha256, note:'This verification does not establish that a consultation occurred.' };
 }
 function maskCustomerName(fullName) {
-  return String(fullName ?? '').trim().split(/\s+/).filter(Boolean)
-    .map(part => part.length === 1 ? '*' : part[0] + '*'.repeat(Math.min(part.length - 1, 8))).join(' ');
+  const parts = String(fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  const letters = parts.join('');
+  const target = letters.length > 12 ? 6 : 4;
+  // Select non-adjacent characters across the full first + last name.
+  // Very short names cannot always expose four without revealing adjacent letters.
+  const count = Math.min(target, Math.ceil(letters.length / 2));
+  const indices = [];
+  if (count) {
+    const maxStart = letters.length - 1 - 2 * (count - 1);
+    const start = Math.floor(maxStart / 2);
+    for (let i = 0; i < count; i++) indices.push(start + i * 2);
+  }
+  let offset = 0;
+  return parts.map(part => {
+    const masked = Array.from(part, (character, i) =>
+      indices.includes(offset + i) ? character : '*').join('');
+    offset += part.length;
+    return masked;
+  }).join(' ');
 }
 async function issueDemo() {
   return serialized(async()=>{
