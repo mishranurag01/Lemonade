@@ -83,8 +83,20 @@ async function handler(req,res) {
     if(!safeEquals(sha(pdf),entry.fingerprintSha256))return json(res,500,{error:'Stored PDF integrity check failed'});
     res.writeHead(200,{'content-type':'application/pdf','content-disposition':'inline; filename="'+entry.file+'"',...headers});return res.end(pdf);
   }
-  if(method==='GET' && url.pathname==='/verify') {
+  if(method==='GET' && (url.pathname==='/verify' || url.pathname==='/pepperpotts-verification.html')) {
+    const html=await fs.readFile(path.join(root,'pepperpotts-verification.html'));
+    res.writeHead(200,{'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",...headers});
+    return res.end(html);
+  }
+  if(method==='GET' && (url.pathname==='/pepperpotts-verification.css' || url.pathname==='/pepperpotts-verification.js')) {
+    const filename=url.pathname.slice(1);
+    const asset=await fs.readFile(path.join(root,filename));
+    res.writeHead(200,{'content-type':filename.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8',...headers});
+    return res.end(asset);
+  }
+  if(method==='GET' && url.pathname==='/api/pepperpotts/verify') {
     const token=url.searchParams.get('token')||'';
+    if(!/^[a-f0-9]{64}$/.test(token))return json(res,404,{status:'NOT_FOUND'});
     const index=await readIndex();
     const entry=Object.values(index).find(e=>safeEquals(sha(token),e.verificationTokenHash));
     if(!entry)return json(res,404,{status:'NOT_FOUND'});
