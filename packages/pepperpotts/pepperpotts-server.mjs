@@ -34,8 +34,14 @@ async function saveIndex(index) {
 }
 function publicRecord(entry) {
   return { reference:entry.reference, status:entry.status, issuedAt:entry.issuedAt,
+    customerNameMasked:entry.customerNameMasked ?? (entry.reference===demoReference ? maskCustomerName(demo.customer.fullName) : null),
+    consultationMode:entry.consultationMode ?? (entry.reference===demoReference ? demo.service.deliveryMode : null),
     service:entry.service, amount:entry.amount, currency:entry.currency,
     fingerprintSha256:entry.fingerprintSha256, note:'This verification does not establish that a consultation occurred.' };
+}
+function maskCustomerName(fullName) {
+  return String(fullName ?? '').trim().split(/\s+/).filter(Boolean)
+    .map(part => part.length === 1 ? '*' : part[0] + '*'.repeat(Math.min(part.length - 1, 8))).join(' ');
 }
 async function issueDemo() {
   return serialized(async()=>{
@@ -52,7 +58,7 @@ async function issueDemo() {
     const pdfName = 'pepperpotts-'+demoReference+'.pdf';
     await fs.writeFile(path.join(issuedDir,pdfName),pdf,{flag:'wx',mode:0o600});
     index[demoReference] = {reference:demoReference,status:'VALID',issuedAt:issueDate,
-      service:demo.service.name,amount:demo.payment.amountMinor,currency:demo.payment.currency,
+      service:demo.service.name,customerNameMasked:maskCustomerName(demo.customer.fullName),consultationMode:demo.service.deliveryMode,amount:demo.payment.amountMinor,currency:demo.payment.currency,
       fingerprintSha256:sha(pdf),verificationTokenHash:sha(token),file:pdfName};
     await saveIndex(index);
     return {status:'ISSUED',reference:demoReference};
