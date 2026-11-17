@@ -9,7 +9,8 @@ const ink = rgb(0.12, 0.12, 0.12);
 const gold = rgb(0.67, 0.43, 0.27);
 function fit(text, max = 82) {
   const value = String(text ?? '').replace(/[\r\n\t]+/g,' ').trim();
-  return value.length > max ? value.slice(0, max - 1) + '…' : value;
+  const printable = value.normalize('NFKD').replace(/[^\\x20-\\x7E]/g, '-');
+  return printable.length > max ? printable.slice(0, max - 3) + '...' : printable;
 }
 export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate }) {
   pepperpottsValidateBooking(booking);
