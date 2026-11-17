@@ -31,6 +31,8 @@
       set('record-status',state);
       set('record-issued',data.issuedAt?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(data.issuedAt))+' IST':'Not available');
       set('record-service',data.service);
+      set('record-customer',data.customerNameMasked || 'Not available');
+      set('record-mode',data.consultationMode || 'Not available');
       const amount=Number(data.amount);
       set('record-amount',Number.isSafeInteger(amount)&&amount>=0?new Intl.NumberFormat('en-IN',{style:'currency',currency:data.currency||'INR'}).format(amount/100):'Not available');
       set('record-fingerprint',data.fingerprintSha256);
