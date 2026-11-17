@@ -1,0 +1,4 @@
+# Pepperpotts local-only generated documents and private issuance metadata
+.pepperpotts-local/
+packages/pepperpotts/node_modules/
+packages/pepperpotts/package-lock.json
