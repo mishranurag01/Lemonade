@@ -1,22 +1,31 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pepperpotts Print Test</title>
-  <style>
-    html, body { margin: 0; min-height: 100%; background: white; }
-    body { font-family: Arial, sans-serif; }
-    button { margin: 16px; padding: 10px 18px; cursor: pointer; }
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pepperpotts Print Test</title>
+<style>
+  html,body { margin:0; min-height:100%; background:#fff; font-family:Arial,sans-serif; }
+  button { margin:16px; padding:10px 18px; cursor:pointer; }
+  #status { margin:0 16px; color:#555; font-size:13px; }
+</style>
 </head>
 <body>
-  <button type="button" id="print">Print</button>
-  <script>
-    document.getElementById('print').addEventListener('click', () => {
-      // Open the original uploaded PDF, without recreating or altering its letterhead.
-      window.open('./PurvaPhalguni%20Letterhead.pdf', '_blank', 'noopener');
-    });
-  </script>
+<button type="button" id="print">Print</button><span id="status" role="status" aria-live="polite"></span>
+<script>
+const button=document.getElementById('print'),status=document.getElementById('status');
+button.addEventListener('click',async()=>{
+  button.disabled=true;status.textContent='Preparing acknowledgement...';
+  try {
+    const response=await fetch('/api/pepperpotts/demo/issue',{method:'POST'});
+    const result=await response.json();
+    if(!response.ok || result.status!=='ISSUED')throw new Error(result.error || 'Payment/service not yet eligible');
+    status.textContent='Opening original-letterhead PDF...';
+    window.location.assign('/api/pepperpotts/demo/pdf');
+  } catch(e) {
+    status.textContent=e.message+' — Start the Pepperpotts Node server with demo mode enabled.';
+    button.disabled=false;
+  }
+});
+</script>
 </body>
 </html>
