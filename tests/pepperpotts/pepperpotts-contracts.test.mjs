@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { pepperpottsEligibility, pepperpottsValidateBooking, pepperpottsMoney } from '../../packages/pepperpotts/pepperpotts-contracts.mjs';
+const booking=()=>({reference:'PP-0001',customer:{fullName:'Example',email:'example@example.invalid'},service:{status:'ACCEPTED',name:'Astrology'},payment:{status:'VERIFIED',amountMinor:49900,currency:'INR',transactionReference:'DEMO-123',paymentDate:'2026-11-18T00:00:00+05:30',confirmationDate:'2026-11-18T00:01:00+05:30',ledgerDate:'2026-11-18T00:02:00+05:30'}});
+test('waits for verified payment',()=>{const b=booking();b.payment.status='UNDER_REVIEW';assert.equal(pepperpottsEligibility(b),'PAYMENT_UNDER_REVIEW');});
+test('waits for accepted service',()=>{const b=booking();b.service.status='PENDING';assert.equal(pepperpottsEligibility(b),'AWAITING_SERVICE_ACCEPTANCE');});
+test('accepts only both trusted statuses',()=>{const b=booking();assert.equal(pepperpottsEligibility(b),'ELIGIBLE');assert.equal(pepperpottsValidateBooking(b),true);});
+test('refuses invalid amounts and reference',()=>{const b=booking();b.payment.amountMinor=-1;assert.throws(()=>pepperpottsValidateBooking(b));b.payment.amountMinor=49900;b.reference='../x';assert.throws(()=>pepperpottsValidateBooking(b));});
+test('preserves exact booking reference',()=>assert.equal(booking().reference,'PP-0001'));
+test('money uses integer minor units',()=>assert.match(pepperpottsMoney(49900),/499/));
