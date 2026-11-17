@@ -1,0 +1,14 @@
+{
+  "name": "@purvaphalguni/pepperpotts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node pepperpotts-server.mjs",
+    "test": "node --test ../../tests/pepperpotts/*.test.mjs"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4"
+  }
+}
