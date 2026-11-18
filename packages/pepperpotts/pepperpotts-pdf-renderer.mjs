@@ -10,6 +10,22 @@ import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from '.
 
 // Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
+// Prefer fonts shipped with Pepperpotts. A fontconfig lookup is only a local-development fallback.
+const BUNDLED_FONTS = path.join(path.dirname(fileURLToPath(import.meta.url)), 'assets', 'fonts');
+async function loadLiberationSerif(style) {
+  const override = process.env['PEPPERPOTTS_LIBERATION_SERIF_' + style.toUpperCase()];
+  if (override) return fs.readFile(override);
+  const bundled = path.join(BUNDLED_FONTS, 'LiberationSerif-' + style + '.ttf');
+  try {
+    return await fs.readFile(bundled);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Bundled Liberation Serif ' + style + ' is missing: ' + bundled + '. Run npm run prepare:fonts and include assets/fonts in deployment.');
+    }
+    return fs.readFile(installedLiberationSerif(style));
+  }
+}
 // Resolve the installed open-source Liberation Serif font on the signing host.
 // Verify the matched family so fontconfig cannot silently substitute a different font.
 function installedLiberationSerif(style) {
@@ -54,8 +70,8 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   if (Math.abs(width - 595.28) > 15 || Math.abs(height - 841.89) > 15) throw new Error('Letterhead must be A4 portrait');
   pdf.registerFontkit(fontkit);
   const [regularBytes, boldBytes] = await Promise.all([
-    fs.readFile(process.env.PEPPERPOTTS_LIBERATION_SERIF_REGULAR || installedLiberationSerif('Regular')),
-    fs.readFile(process.env.PEPPERPOTTS_LIBERATION_SERIF_BOLD || installedLiberationSerif('Bold'))
+    loadLiberationSerif('Regular'),
+    loadLiberationSerif('Bold')
   ]);
   const regular = await pdf.embedFont(regularBytes, { subset: true });
   const bold = await pdf.embedFont(boldBytes, { subset: true });
