@@ -5,13 +5,13 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { pepperpottsEligibility, pepperpottsValidateBooking, PEPPERPOTTS_STATES } from './pepperpotts-contracts.mjs';
 import { pepperpottsRenderPdf } from './pepperpotts-pdf-renderer.mjs';
+import { pepperpottsSignPdf } from './pepperpotts-pdf-signer.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(root);
 const PORT = Number(process.env.PEPPERPOTTS_PORT || 8000);
 const HOST = '127.0.0.1';
 const stateDir = path.resolve('.pepperpotts-local');
-const issuedDir = path.join(stateDir, 'issued');
 const indexFile = path.join(stateDir, 'pepperpotts-index.json');
 const demoReference = 'PP-DEMO-0001';
 const demo = {
@@ -37,7 +37,7 @@ function publicRecord(entry) {
     customerNameMasked:entry.reference===demoReference ? maskCustomerName(demo.customer.fullName) : (entry.customerNameMasked ?? null),
     consultationMode:entry.consultationMode ?? (entry.reference===demoReference ? demo.service.deliveryMode : null),
     service:entry.service, amount:entry.amount, currency:entry.currency,
-    fingerprintSha256:entry.fingerprintSha256, note:'This verification does not establish that a consultation occurred.' };
+    note:'This verification does not establish that a consultation occurred.' };
 }
 function maskCustomerName(fullName) {
   const parts = String(fullName ?? '').trim().split(/\s+/).filter(Boolean);
@@ -61,24 +61,34 @@ function maskCustomerName(fullName) {
   }).join(' ');
 }
 async function issueDemo() {
-  return serialized(async()=>{
+  return serialized(async () => {
     if (process.env.PEPPERPOTTS_ENABLE_DEMO !== '1') throw new Error('Demo issuance is disabled');
     const eligibility = pepperpottsEligibility(demo);
-    if(eligibility!==PEPPERPOTTS_STATES.ELIGIBLE) return { status:eligibility };
+    if (eligibility !== PEPPERPOTTS_STATES.ELIGIBLE) return { status: eligibility };
     pepperpottsValidateBooking(demo);
     const index = await readIndex();
-    if(index[demoReference]) return {status:'ISSUED',reference:demoReference};
-    const token = crypto.randomBytes(32).toString('hex');
-    const issueDate = new Date().toISOString();
-    const verificationUrl = 'http://127.0.0.1:'+PORT+'/verify?token='+encodeURIComponent(token);
-    const pdf = await pepperpottsRenderPdf(structuredClone(demo),{verificationUrl,issueDate});
-    const pdfName = 'pepperpotts-'+demoReference+'.pdf';
-    await fs.writeFile(path.join(issuedDir,pdfName),pdf,{flag:'wx',mode:0o600});
-    index[demoReference] = {reference:demoReference,status:'VALID',issuedAt:issueDate,
-      service:demo.service.name,customerNameMasked:maskCustomerName(demo.customer.fullName),consultationMode:demo.service.deliveryMode,amount:demo.payment.amountMinor,currency:demo.payment.currency,
-      fingerprintSha256:sha(pdf),verificationTokenHash:sha(token),file:pdfName};
-    await saveIndex(index);
-    return {status:'ISSUED',reference:demoReference};
+    let entry = index[demoReference];
+    if (!entry) {
+      const token = crypto.randomBytes(32).toString('hex');
+      entry = {
+        reference: demoReference, status: 'VALID', issuedAt: new Date().toISOString(),
+        service: demo.service.name, customerNameMasked: maskCustomerName(demo.customer.fullName),
+        consultationMode: demo.service.deliveryMode, amount: demo.payment.amountMinor,
+        currency: demo.payment.currency, verificationTokenHash: sha(token),
+        demoVerificationToken: token, templateVersion: 'v1'
+      };
+      index[demoReference] = entry;
+      await saveIndex(index);
+    } else if (!entry.demoVerificationToken) {
+      // Legacy prototype stored only a token hash and a PDF. Preserve the old hash
+      // so previously printed QR codes still resolve, while enabling fresh PDFs.
+      const token = crypto.randomBytes(32).toString('hex');
+      entry.legacyVerificationTokenHash = entry.verificationTokenHash;
+      entry.verificationTokenHash = sha(token);
+      entry.demoVerificationToken = token;
+      await saveIndex(index);
+    }
+    return { status: 'ISSUED', reference: demoReference };
   });
 }
 async function handler(req,res) {
@@ -102,9 +112,17 @@ async function handler(req,res) {
     if(process.env.PEPPERPOTTS_ENABLE_DEMO!=='1')return json(res,403,{error:'Demo disabled'});
     const index=await readIndex(), entry=index[demoReference];
     if(!entry)return json(res,409,{error:'Not issued'});
-    const pdf=await fs.readFile(path.join(issuedDir,entry.file));
-    if(!safeEquals(sha(pdf),entry.fingerprintSha256))return json(res,500,{error:'Stored PDF integrity check failed'});
-    res.writeHead(200,{'content-type':'application/pdf','content-disposition':'inline; filename="'+entry.file+'"',...headers});return res.end(pdf);
+    // The private local demo index is authoritative; generate a new signed PDF
+    // per request. No generated customer PDF is retained by this endpoint.
+    const verificationUrl = 'http://127.0.0.1:' + PORT + '/verify?token=' + encodeURIComponent(entry.demoVerificationToken);
+    const unsigned = await pepperpottsRenderPdf(structuredClone(demo), {
+      verificationUrl, issueDate: entry.issuedAt, sign: true
+    });
+    const pdf = await pepperpottsSignPdf(unsigned);
+    const filename = 'pepperpotts-' + demoReference + '.pdf';
+    res.writeHead(200, {'content-type':'application/pdf',
+      'content-disposition':'inline; filename="' + filename + '"', ...headers});
+    return res.end(pdf);
   }
   if(method==='GET' && (url.pathname==='/verify' || url.pathname==='/pepperpotts-verification.html')) {
     const html=await fs.readFile(path.join(root,'pepperpotts-verification.html'));
@@ -121,13 +139,13 @@ async function handler(req,res) {
     const token=url.searchParams.get('token')||'';
     if(!/^[a-f0-9]{64}$/.test(token))return json(res,404,{status:'NOT_FOUND'});
     const index=await readIndex();
-    const entry=Object.values(index).find(e=>safeEquals(sha(token),e.verificationTokenHash));
+    const entry=Object.values(index).find(e=>(safeEquals(sha(token),e.verificationTokenHash) || safeEquals(sha(token),e.legacyVerificationTokenHash)));
     if(!entry)return json(res,404,{status:'NOT_FOUND'});
     return json(res,200,publicRecord(entry));
   }
   return json(res,404,{error:'Not found'});
 }
-await fs.mkdir(issuedDir,{recursive:true,mode:0o700});
+await fs.mkdir(stateDir,{recursive:true,mode:0o700});
 http.createServer((req,res)=>{
   handler(req,res).catch(e=>{console.error('Pepperpotts:',e.message);if(!res.headersSent)json(res,500,{error:'Request failed; see local server log'});else res.end();});
 }).listen(PORT,HOST,()=>console.log('Pepperpotts local demo: http://'+HOST+':'+PORT+' (demo '+(process.env.PEPPERPOTTS_ENABLE_DEMO==='1'?'enabled':'disabled')+')'));
