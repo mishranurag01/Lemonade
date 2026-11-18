@@ -9,6 +9,9 @@
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "@signpdf/signpdf": "^3.2.5",
+    "@signpdf/placeholder-pdf-lib": "^3.2.5",
+    "@signpdf/signer-p12": "^3.2.5"
   }
 }
