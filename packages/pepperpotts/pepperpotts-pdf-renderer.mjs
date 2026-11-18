@@ -10,6 +10,7 @@ import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from '.
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
 const ink = rgb(0.12, 0.12, 0.12);
 const gold = rgb(0.67, 0.43, 0.27);
+const signedGreen = rgb(0.09, 0.48, 0.25);
 function fit(text, max = 82) {
   const value = String(text ?? '').replace(/[\r\n\t]+/g,' ').trim();
   const printable = value.normalize('NFKD').replace(/[^\x20-\x7E]/g, '-');
@@ -73,7 +74,16 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   page.drawText('Verify on official record', { x: width - 167, y: 96, size: 7, font: regular, color: ink });
   page.drawText('Electronically issued after verified payment and service acceptance.', { x, y: 141, size: 8, font: regular, color: ink });
   page.drawText('Not a prescription, diagnosis, consultation record or proof of service delivery.', { x, y: 126, size: 7.6, font: regular, color: ink });
-  page.drawText(sign ? 'Cryptographically signed with a development certificate.' : 'Unsigned development acknowledgement.', { x, y: 111, size: 7.4, font: regular, color: ink });
+  if (sign) {
+    // Visual indicator is covered by the subsequent PDF signature. Trust the embedded
+    // cryptographic signature for integrity; this graphic is not a validation result.
+    page.drawCircle({ x: x + 6, y: 112, size: 6, color: signedGreen });
+    page.drawLine({ start: { x: x + 3, y: 112 }, end: { x: x + 5, y: 110 }, thickness: 1.3, color: rgb(1, 1, 1) });
+    page.drawLine({ start: { x: x + 5, y: 110 }, end: { x: x + 9, y: 115 }, thickness: 1.3, color: rgb(1, 1, 1) });
+    page.drawText('Digitally signed - verify signature integrity in a PDF validator', { x: x + 17, y: 109, size: 7.4, font: regular, color: signedGreen });
+  } else {
+    page.drawText('Unsigned development acknowledgement.', { x, y: 111, size: 7.4, font: regular, color: ink });
+  }
   pdf.setTitle('Payment & Service Acknowledgement — '+booking.reference);
   pdf.setSubject('PurvaPhalguni verified payment and accepted booking acknowledgement');
   pdf.setCreator('Pepperpotts acknowledgement engine');
