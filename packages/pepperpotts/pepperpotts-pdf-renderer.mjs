@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -9,10 +10,23 @@ import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from '.
 
 // Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
-// Explicit local font paths avoid substituting Times-compatible lookalikes.
-// Font files remain on the signing host and are never committed to Git.
-const FONT_REGULAR = process.env.PEPPERPOTTS_TIMES_NEW_ROMAN_REGULAR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../..', '.pepperpotts-local', 'fonts', 'times.ttf');
-const FONT_BOLD = process.env.PEPPERPOTTS_TIMES_NEW_ROMAN_BOLD || path.join(path.dirname(fileURLToPath(import.meta.url)), '../..', '.pepperpotts-local', 'fonts', 'timesbd.ttf');
+// Resolve the installed open-source Liberation Serif font on the signing host.
+// Verify the matched family so fontconfig cannot silently substitute a different font.
+function installedLiberationSerif(style) {
+  const result = spawnSync('fc-match', ['-f', '%{family}\\n%{style}\\n%{file}\\n', 'Liberation Serif:style=' + style], { encoding: 'utf8', timeout: 5000 });
+  if (result.error || result.status !== 0) throw new Error('fontconfig is required to locate Liberation Serif: ' + (result.error?.message || result.stderr?.trim() || 'fc-match failed'));
+  const [family, matchedStyle, fontPath] = result.stdout.trim().split('\\n');
+  if (!family?.split(',').map(value => value.trim()).includes('Liberation Serif') || !fontPath) {
+    throw new Error('Liberation Serif is not installed. Install the fonts-liberation package.');
+  }
+  if (style === 'Bold' && !matchedStyle?.split(',').some(value => value.trim() === 'Bold')) {
+    throw new Error('Liberation Serif Bold is not installed.');
+  }
+  if (style === 'Regular' && !matchedStyle?.split(',').some(value => value.trim() === 'Regular')) {
+    throw new Error('Liberation Serif Regular is not installed.');
+  }
+  return fontPath;
+}
 const ink = rgb(0.12, 0.12, 0.12);
 const gold = rgb(0.67, 0.43, 0.27);
 const signedGreen = rgb(0.09, 0.48, 0.25);
@@ -30,14 +44,10 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   const { width, height } = page.getSize();
   if (Math.abs(width - 595.28) > 15 || Math.abs(height - 841.89) > 15) throw new Error('Letterhead must be A4 portrait');
   pdf.registerFontkit(fontkit);
-  let regularBytes;
-  let boldBytes;
-  try {
-    [regularBytes, boldBytes] = await Promise.all([fs.readFile(FONT_REGULAR), fs.readFile(FONT_BOLD)]);
-  } catch (error) {
-    if (error.code === 'ENOENT') throw new Error('Times New Roman font files missing. Place licensed times.ttf and timesbd.ttf in .pepperpotts-local/fonts/ or set PEPPERPOTTS_TIMES_NEW_ROMAN_REGULAR and PEPPERPOTTS_TIMES_NEW_ROMAN_BOLD.');
-    throw error;
-  }
+  const [regularBytes, boldBytes] = await Promise.all([
+    fs.readFile(process.env.PEPPERPOTTS_LIBERATION_SERIF_REGULAR || installedLiberationSerif('Regular')),
+    fs.readFile(process.env.PEPPERPOTTS_LIBERATION_SERIF_BOLD || installedLiberationSerif('Bold'))
+  ]);
   const regular = await pdf.embedFont(regularBytes, { subset: true });
   const bold = await pdf.embedFont(boldBytes, { subset: true });
   const x = 62;
