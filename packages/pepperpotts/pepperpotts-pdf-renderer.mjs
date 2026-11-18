@@ -1,10 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from './pepperpotts-contracts.mjs';
 
-const TEMPLATE = path.resolve('PurvaPhalguni Letterhead.pdf');
+// Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
+const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
 const ink = rgb(0.12, 0.12, 0.12);
 const gold = rgb(0.67, 0.43, 0.27);
 function fit(text, max = 82) {
