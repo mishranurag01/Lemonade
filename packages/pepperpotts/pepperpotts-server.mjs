@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { pepperpottsEligibility, pepperpottsValidateBooking, PEPPERPOTTS_STATES } from './pepperpotts-contracts.mjs';
 import { pepperpottsRenderPdf } from './pepperpotts-pdf-renderer.mjs';
 import { pepperpottsSignPdf } from './pepperpotts-pdf-signer.mjs';
+import { pepperpottsVerifyPdfIntegrity } from './pepperpotts-pdf-integrity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(root);
@@ -119,6 +120,9 @@ async function handler(req,res) {
       verificationUrl, issueDate: entry.issuedAt, sign: true
     });
     const pdf = await pepperpottsSignPdf(unsigned);
+    // Fail closed: never serve a PDF labelled signed unless its detached CMS
+    // verifies against the complete PDF byte range.
+    await pepperpottsVerifyPdfIntegrity(pdf);
     const filename = 'pepperpotts-' + demoReference + '.pdf';
     res.writeHead(200, {'content-type':'application/pdf',
       'content-disposition':'inline; filename="' + filename + '"', ...headers});
