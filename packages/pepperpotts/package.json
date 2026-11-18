@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node pepperpotts-server.mjs",
-    "test": "node --test ../../tests/pepperpotts/*.test.mjs"
+    "test": "node --test ../../tests/pepperpotts/*.test.mjs",
+    "prepare:fonts": "node prepare-fonts.mjs"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
