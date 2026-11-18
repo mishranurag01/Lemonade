@@ -1,12 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { SignPdf } from '@signpdf/signpdf';
 import { P12Signer } from '@signpdf/signer-p12';
 
 // Development-only key loading. Never expose the private key or PKCS#12 to browsers.
 // OpenSSL creates a PKCS#12 bundle in memory; no permanent copy is written.
-const defaultDir = path.resolve('.pepperpotts-local/signing');
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const defaultDir = path.join(repositoryRoot, '.pepperpotts-local', 'signing');
 export async function pepperpottsSignPdf(pdfBytes) {
   const keyPath = process.env.PEPPERPOTTS_SIGNING_KEY || path.join(defaultDir, 'private-key.pem');
   const certPath = process.env.PEPPERPOTTS_SIGNING_CERT || path.join(defaultDir, 'certificate.pem');
