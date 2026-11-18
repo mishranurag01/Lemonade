@@ -147,5 +147,5 @@ async function handler(req,res) {
 }
 await fs.mkdir(stateDir,{recursive:true,mode:0o700});
 http.createServer((req,res)=>{
-  handler(req,res).catch(e=>{console.error('Pepperpotts:',e.message);if(!res.headersSent)json(res,500,{error:'Request failed; see local server log'});else res.end();});
+  handler(req,res).catch(e=>{console.error('Pepperpotts:', e.stack || e.message);if(!res.headersSent)json(res,500,{error:'Request failed; see local server log'});else res.end();});
 }).listen(PORT,HOST,()=>console.log('Pepperpotts local demo: http://'+HOST+':'+PORT+' (demo '+(process.env.PEPPERPOTTS_ENABLE_DEMO==='1'?'enabled':'disabled')+')'));
