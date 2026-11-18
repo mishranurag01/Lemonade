@@ -13,17 +13,26 @@ const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 // Resolve the installed open-source Liberation Serif font on the signing host.
 // Verify the matched family so fontconfig cannot silently substitute a different font.
 function installedLiberationSerif(style) {
-  const result = spawnSync('fc-match', ['-f', '%{family}\\n%{style}\\n%{file}\\n', 'Liberation Serif:style=' + style], { encoding: 'utf8', timeout: 5000 });
-  if (result.error || result.status !== 0) throw new Error('fontconfig is required to locate Liberation Serif: ' + (result.error?.message || result.stderr?.trim() || 'fc-match failed'));
-  const [family, matchedStyle, fontPath] = result.stdout.trim().split('\\n');
-  if (!family?.split(',').map(value => value.trim()).includes('Liberation Serif') || !fontPath) {
-    throw new Error('Liberation Serif is not installed. Install the fonts-liberation package.');
+  const result = spawnSync('fc-match', [
+    '-f', '%{family}|%{style}|%{file}',
+    'Liberation Serif:style=' + style
+  ], { encoding: 'utf8', timeout: 5000 });
+  if (result.error || result.status !== 0) {
+    throw new Error('Unable to locate Liberation Serif using fontconfig: ' +
+      (result.error?.message || result.stderr?.trim() || 'fc-match failed'));
   }
-  if (style === 'Bold' && !matchedStyle?.split(',').some(value => value.trim() === 'Bold')) {
-    throw new Error('Liberation Serif Bold is not installed.');
+  const parts = result.stdout.trim().split('|');
+  if (parts.length !== 3) {
+    throw new Error('Unexpected fontconfig output while locating Liberation Serif');
   }
-  if (style === 'Regular' && !matchedStyle?.split(',').some(value => value.trim() === 'Regular')) {
-    throw new Error('Liberation Serif Regular is not installed.');
+  const [family, matchedStyle, fontPath] = parts;
+  const families = family.split(',').map(value => value.trim());
+  const styles = matchedStyle.split(',').map(value => value.trim());
+  if (!families.includes('Liberation Serif') || !fontPath) {
+    throw new Error('Liberation Serif is not installed. Install fonts-liberation.');
+  }
+  if (!styles.includes(style)) {
+    throw new Error('Liberation Serif ' + style + ' is unavailable; fontconfig selected ' + matchedStyle);
   }
   return fontPath;
 }
