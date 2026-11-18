@@ -2,12 +2,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from './pepperpotts-contracts.mjs';
 
 // Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
+// Explicit local font paths avoid substituting Times-compatible lookalikes.
+// Font files remain on the signing host and are never committed to Git.
+const FONT_REGULAR = process.env.PEPPERPOTTS_TIMES_NEW_ROMAN_REGULAR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../..', '.pepperpotts-local', 'fonts', 'times.ttf');
+const FONT_BOLD = process.env.PEPPERPOTTS_TIMES_NEW_ROMAN_BOLD || path.join(path.dirname(fileURLToPath(import.meta.url)), '../..', '.pepperpotts-local', 'fonts', 'timesbd.ttf');
 const ink = rgb(0.12, 0.12, 0.12);
 const gold = rgb(0.67, 0.43, 0.27);
 const signedGreen = rgb(0.09, 0.48, 0.25);
@@ -24,8 +29,17 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   const page = pdf.getPage(0);
   const { width, height } = page.getSize();
   if (Math.abs(width - 595.28) > 15 || Math.abs(height - 841.89) > 15) throw new Error('Letterhead must be A4 portrait');
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  pdf.registerFontkit(fontkit);
+  let regularBytes;
+  let boldBytes;
+  try {
+    [regularBytes, boldBytes] = await Promise.all([fs.readFile(FONT_REGULAR), fs.readFile(FONT_BOLD)]);
+  } catch (error) {
+    if (error.code === 'ENOENT') throw new Error('Times New Roman font files missing. Place licensed times.ttf and timesbd.ttf in .pepperpotts-local/fonts/ or set PEPPERPOTTS_TIMES_NEW_ROMAN_REGULAR and PEPPERPOTTS_TIMES_NEW_ROMAN_BOLD.');
+    throw error;
+  }
+  const regular = await pdf.embedFont(regularBytes, { subset: true });
+  const bold = await pdf.embedFont(boldBytes, { subset: true });
   const x = 62;
   let y = height - 145;
   const line = (label, value, options={}) => {
