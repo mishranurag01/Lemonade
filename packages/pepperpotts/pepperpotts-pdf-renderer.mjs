@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from './pepperpotts-contracts.mjs';
 
 // Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
@@ -14,7 +15,7 @@ function fit(text, max = 82) {
   const printable = value.normalize('NFKD').replace(/[^\x20-\x7E]/g, '-');
   return printable.length > max ? printable.slice(0, max - 3) + '...' : printable;
 }
-export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate }) {
+export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate, sign = false }) {
   pepperpottsValidateBooking(booking);
   const original = await fs.readFile(TEMPLATE); // Use the actual user-uploaded PDF, never redraw its artwork.
   const pdf = await PDFDocument.load(original);
@@ -72,9 +73,12 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   page.drawText('Verify on official record', { x: width - 167, y: 96, size: 7, font: regular, color: ink });
   page.drawText('Electronically issued after verified payment and service acceptance.', { x, y: 141, size: 8, font: regular, color: ink });
   page.drawText('Not a prescription, diagnosis, consultation record or proof of service delivery.', { x, y: 126, size: 7.6, font: regular, color: ink });
-  page.drawText('Signature status: electronically verified; no certificate-based digital signature.', { x, y: 111, size: 7.4, font: regular, color: ink });
+  page.drawText(sign ? 'Cryptographically signed with a development certificate.' : 'Unsigned development acknowledgement.', { x, y: 111, size: 7.4, font: regular, color: ink });
   pdf.setTitle('Payment & Service Acknowledgement — '+booking.reference);
   pdf.setSubject('PurvaPhalguni verified payment and accepted booking acknowledgement');
   pdf.setCreator('Pepperpotts acknowledgement engine');
-  return Buffer.from(await pdf.save());
+  if (sign) {
+    pdflibAddPlaceholder({ pdfDoc: pdf, reason: 'Payment and service acknowledgement', name: 'PurvaPhalguni Development Signer', location: 'India', signatureLength: 16384 });
+  }
+  return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
