@@ -78,7 +78,7 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   pdf.setSubject('PurvaPhalguni verified payment and accepted booking acknowledgement');
   pdf.setCreator('Pepperpotts acknowledgement engine');
   if (sign) {
-    pdflibAddPlaceholder({ pdfDoc: pdf, reason: 'Payment and service acknowledgement', name: 'PurvaPhalguni Development Signer', location: 'India', signatureLength: 16384 });
+    pdflibAddPlaceholder({ pdfDoc: pdf, reason: 'Payment and service acknowledgement', name: 'PurvaPhalguni Development Signer', contactInfo: 'PurvaPhalguni development signing', location: 'India', signatureLength: 16384 });
   }
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
