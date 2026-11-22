@@ -22,6 +22,15 @@ export function pepperpottsValidateBooking(booking) {
   if (required.some(value => typeof value !== 'string' || !value.trim())) throw new Error('Missing required verified booking fields');
   if (!/^[A-Za-z0-9_-]{4,80}$/.test(booking.reference)) throw new Error('Invalid booking reference');
   if (!Number.isSafeInteger(booking.payment.amountMinor) || booking.payment.amountMinor < 0) throw new Error('Invalid payment amount');
+  for (const key of ['subtotalMinor', 'discountMinor', 'taxMinor']) {
+    const value = booking.payment[key];
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) throw new Error('Invalid ' + key);
+  }
+  const discount = booking.payment.discountMinor || 0;
+  const tax = booking.payment.taxMinor || 0;
+  if (booking.payment.subtotalMinor !== undefined && booking.payment.subtotalMinor - discount + tax !== booking.payment.amountMinor) {
+    throw new Error('Payment breakdown does not equal verified amount');
+  }
   if (!/^[A-Z]{3}$/.test(booking.payment.currency)) throw new Error('Invalid currency');
   for (const key of ['paymentDate', 'confirmationDate', 'ledgerDate']) {
     if (!Number.isFinite(Date.parse(booking.payment[key]))) throw new Error('Invalid '+key);

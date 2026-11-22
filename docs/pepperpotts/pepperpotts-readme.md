@@ -1,49 +1,53 @@
-# Pepperpotts — local development and transfer guide
+# Pepperpotts — secure receipt prototype
 
 ## Scope
-Pepperpotts is a **backend acknowledgement prototype**, plus a disposable root `index.html` with one Print button. The original uploaded `PurvaPhalguni Letterhead.pdf` in the repository root is the sole letterhead source. The engine **loads and overlays** that PDF, and never recreates the letterhead artwork. No existing PurvaPhalguni repository files have been modified.
 
-## Local run (Node 20+; Termux or Jack)
-From the Lemonade repository root on branch `Pepperpotts`:
+Pepperpotts is an independently testable acknowledgement backend and localhost demonstration. It overlays the repository's original `PurvaPhalguni Letterhead.pdf`; it does not redraw or replace the letterhead. PDFs use bundled Liberation Serif, remain A4, are generated on demand, receive an embedded CMS signature, and are independently verified before the server returns them. Generated customer PDFs and signing keys are never public assets or adapter records.
+
+This branch is **not production-ready** and is not connected to PurvaPhalguni. The development adapter, loopback session, JSON index, in-memory rate limiter, and development certificate are deliberately local-only.
+
+## Run on Jack (Ubuntu, Node.js 24)
+
+Dependencies must already be installed. Create a local development signing identity if one is not present:
 
 ```sh
-npm install --prefix packages/pepperpotts
+mkdir -p .pepperpotts-local/signing
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout .pepperpotts-local/signing/private-key.pem \
+  -out .pepperpotts-local/signing/certificate.pem \
+  -subj '/CN=Pepperpotts Local Development' -days 30
 PEPPERPOTTS_ENABLE_DEMO=1 npm --prefix packages/pepperpotts start
 ```
 
-Open `http://127.0.0.1:8000` in a browser **on the same device**. Tap **Print**. The server issues one local demonstration acknowledgement, generates a fresh signed PDF over the **original** letterhead, and the PDF viewer offers Print / Save as PDF. Restarting the server does not create a second receipt identity. Only local issuance metadata is stored in `.pepperpotts-local/`; generated PDF bytes are not retained.
+Open `http://127.0.0.1:8000`. The page establishes a random, HttpOnly, SameSite loopback session. It can show status, issue the eligible fictional booking exactly once, open/regenerate its signed PDF, open the QR verification result, and mark only the fictional record issued/refunded/revoked. State changes require the loopback session and a matching localhost Origin.
 
-The test booking is clearly fictional. It does **not** represent a real paid booking. The original uploaded letterhead PDF must exist at the repository root with exactly the filename `PurvaPhalguni Letterhead.pdf`.
+Run focused tests:
 
 ```sh
 npm --prefix packages/pepperpotts test
 ```
 
-Do **not** run the old `python -m http.server` command for this version; Python's static server cannot run the PDF issuance backend. Port 8000 must be free.
+## Security and data flow
 
-## API in local demo
-- `GET /api/pepperpotts/status`: local demo eligibility/issuance status
-- `POST /api/pepperpotts/demo/issue`: issue the fictional demo once (requires explicit `PEPPERPOTTS_ENABLE_DEMO=1`)
-- `GET /api/pepperpotts/demo/pdf`: regenerate the issued demo PDF from trusted metadata
-- `GET /verify?token=...`: privacy-reduced local verification record
+The core receipt-access service requires an authenticated principal and an injected authorization decision. The host application must map its real customer/admin identity to this contract; Pepperpotts does not invent accounts or accept customer identity from request bodies. Authorization occurs before reference-based receipt loading. Production HTTP handlers should return indistinguishable safe responses for denied and nonexistent references.
 
-## Issuance model
-Receipt number **equals the booking reference**. Payment verified **AND** service accepted are both mandatory. The original booking/payment data are snapshotted for rendering. Payment, confirmation, ledger, and issue dates are distinct and shown in IST. Total paid, subtotal, discount, and tax use integer minor currency units. The original letterhead is unmodified; the generated PDF includes an official-record QR in the local demo, an SHA-256 fingerprint of the finalized bytes, and a non-cryptographic electronic issuance statement.
+Issuance accepts only a booking reference. The authoritative adapter supplies payment status, service acceptance, customer, amount, currency, dates, and service details. `VERIFIED` payment and `ACCEPTED` service are mandatory. The receipt identity equals the booking reference, and adapter `getOrCreateIssuance` must be transactional. No browser-supplied financial or eligibility fields participate.
 
-The server-side authoritative adapter accepts a booking reference only, loads booking/payment/service fields from its trusted source, and atomically gets or creates the receipt identity. The explicitly selected development adapter uses the fictional fixture, a local JSON index, a serialized issuance queue, a random verification token, and an atomic metadata rename. Persistence remains behind the adapter contract; it stores no PDF bytes or signing secrets. It is **not** a production financial-record system.
+The public QR lookup accepts a random 256-bit token and looks up its SHA-256 hash. It returns only reference, issuance date, service, amount/currency, and current status. It supports issued, refunded, revoked, and not-found states. QR verification checks the server record only; the embedded PDF signature separately checks PDF-byte integrity. A copied QR does not authenticate paper.
 
-## Production integration: required work before use with real bookings
-1. Implement the production side of the existing adapter contract using PurvaPhalguni's authenticated booking state, gateway webhook reconciliation and authoritative service acceptance. Never trust the browser or user-submitted UTR as proof of payment.
-2. Back the adapter's atomic get-or-create operation with the selected production datastore and add an audit trail, immutable versions, and formal metadata retention policy.
-3. Keep regenerating customer PDFs on demand; do not expose generated documents under `public/`.
-4. Use an HTTPS verification endpoint under the official domain. Store only hashes of tokens, rate-limit lookup, and prevent public exposure of customer identity/payment references. Printed QR verifies server records, not physical paper integrity.
-5. Handle refunds, cancellations, corrections, and revocations by preserving the original record and changing verification status with an audit trail. Do not silently overwrite issued PDFs.
-6. Replace the development certificate with the approved managed signing identity. CMS integrity verification is implemented, but production certificate trust is not.
-7. Add real PDF rendering tests with the actual uploaded letterhead, visual comparisons, overflow tests, international name/font support, and tests for concurrent issuance/restarts.
-8. Protect real API routes with authentication, role checks, CSRF/origin defenses, and rate limits; the loopback-only demo endpoints must **not** be deployed to the public internet.
-9. Review financial, tax, and clinical disclaimers against actual services and legal requirements before issuance.
+The local adapter records issuance/status audit events and uses an atomic JSON rename plus a lock to protect concurrent local requests and restarts. The server applies a small in-memory verification rate limit. Production requires durable transactional persistence, stale-lock-independent concurrency, distributed rate limiting/abuse monitoring, and a tamper-evident audit trail.
 
-## Transfer plan
-Move `packages/pepperpotts/` and approved tests/docs into a **new integration branch based on VISION**. Keep namespaced paths and filenames. Do not merge Lemonade wholesale, do not replace PurvaPhalguni's root package files, and do not copy the disposable `index.html` or `.pepperpotts-local/`. Copy the original PDF into the existing `public/` assets only after confirming the exact destination filename and no collision. The production backend may use the public master letterhead as an input, but generated customer documents and signing secrets must remain private.
+Payment display always uses the authoritative paid amount. Zero tax is omitted; configured nonzero tax remains supported. Pepperpotts does not calculate GST and labels the document a payment/service acknowledgement, not a GST tax invoice.
 
-**Current limitation:** End-to-end PDF rendering has not been executed against the actual uploaded repository PDF in this chat. Do not treat this prototype as production-approved.
+## Production dependencies
+
+Before integration, provide and validate:
+
+1. PurvaPhalguni authentication, receipt ownership/admin authorization, session security, and route-level CSRF/origin policy.
+2. A production authoritative adapter backed by reconciled gateway/payment and accepted-service records.
+3. Transactional issuance/token-hash persistence, protected token recovery for regeneration, lifecycle audit history, retention policy, and distributed rate limiting.
+4. Managed signing keys/certificate outside source/public storage, certificate trust policy, rotation, and operational monitoring.
+5. HTTPS official-domain routes, authenticated PDF delivery, safe 404/denial behavior, and security/logging review.
+6. Legal/tax review of acknowledgement wording and any future GST configuration.
+
+Do not transfer the root demo UI, `.pepperpotts-local/`, development keys, or the JSON development adapter into a production deployment.

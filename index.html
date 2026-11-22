@@ -2,30 +2,37 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pepperpotts Print Test</title>
+<meta name="referrer" content="no-referrer">
+<title>Pepperpotts Secure Receipt Demo</title>
 <style>
-  html,body { margin:0; min-height:100%; background:#fff; font-family:Arial,sans-serif; }
-  button { margin:16px; padding:10px 18px; cursor:pointer; }
-  #status { margin:0 16px; color:#555; font-size:13px; }
+  :root{font-family:Arial,sans-serif;color:#25211d;background:#f5f0e9}*{box-sizing:border-box}body{margin:0;padding:32px 18px}.card{max-width:720px;margin:auto;background:#fff;border:1px solid #d6c7b8;border-radius:14px;padding:28px;box-shadow:0 12px 35px #4b38231a}h1{font-family:Georgia,serif;font-weight:400;margin:0 0 8px}.intro{color:#655d55;line-height:1.55}.summary{background:#f7f3ee;border-radius:8px;padding:14px;margin:22px 0}.actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}button,a.button{border:1px solid #8b6243;background:#8b6243;color:#fff;border-radius:7px;padding:10px 15px;font:inherit;text-decoration:none;cursor:pointer}button.secondary,a.secondary{background:#fff;color:#704b32}button:disabled{opacity:.5;cursor:not-allowed}#message{min-height:20px;color:#554b42;font-size:14px}.warning{font-size:12px;line-height:1.55;color:#73685f;border-top:1px solid #e1d7ce;padding-top:18px}
 </style>
 </head>
-<body>
-<button type="button" id="print">Print</button><span id="status" role="status" aria-live="polite"></span>
+<body><main class="card">
+<h1>Pepperpotts receipt demo</h1>
+<p class="intro">Issue and inspect one fictional acknowledgement. This loopback-only session is separate from any production customer or administrator authentication.</p>
+<div class="summary"><strong id="reference">Loading…</strong><br><span id="current-status">Checking status…</span></div>
+<div class="actions">
+  <button type="button" id="issue">Issue acknowledgement</button>
+  <a class="button secondary" id="pdf" href="/api/pepperpotts/demo/pdf" target="_blank" rel="noopener">Open signed PDF</a>
+  <a class="button secondary" id="verify" href="#" target="_blank" rel="noopener" hidden>Open QR verification</a>
+</div>
+<div class="actions" aria-label="Development lifecycle controls">
+  <button class="secondary lifecycle" data-status="ISSUED" type="button">Mark issued</button>
+  <button class="secondary lifecycle" data-status="REFUNDED" type="button">Test refunded</button>
+  <button class="secondary lifecycle" data-status="REVOKED" type="button">Test revoked</button>
+</div>
+<p id="message" role="status" aria-live="polite"></p>
+<p class="warning">Development controls alter only the fictional local record and append audit events. QR verification checks the server record; PDF signature validation is a separate cryptographic check.</p>
+</main>
 <script>
-const button=document.getElementById('print'),status=document.getElementById('status');
-button.addEventListener('click',async()=>{
-  button.disabled=true;status.textContent='Preparing acknowledgement...';
-  try {
-    const response=await fetch('/api/pepperpotts/demo/issue',{method:'POST'});
-    const result=await response.json();
-    if(!response.ok || result.status!=='ISSUED')throw new Error(result.error || 'Payment/service not yet eligible');
-    status.textContent='Opening original-letterhead PDF...';
-    window.location.assign('/api/pepperpotts/demo/pdf');
-  } catch(e) {
-    status.textContent=e.message+' — Start the Pepperpotts Node server with demo mode enabled.';
-    button.disabled=false;
-  }
-});
+'use strict';
+const message=document.getElementById('message'),issue=document.getElementById('issue'),verify=document.getElementById('verify');
+const showStatus=data=>{document.getElementById('reference').textContent=data.reference||'Demo booking';document.getElementById('current-status').textContent='Status: '+(data.status||'UNKNOWN');issue.disabled=!data.enabled;};
+async function request(url,options){const response=await fetch(url,{cache:'no-store',...options});const data=await response.json();if(!response.ok)throw new Error(data.error||'Request failed');return data;}
+async function load(){try{const status=await request('/api/pepperpotts/status');showStatus(status);if(['ISSUED','REFUNDED','REVOKED'].includes(status.status)){const receipt=await request('/api/pepperpotts/demo/receipt');verify.href=receipt.verificationUrl;verify.hidden=false;}}catch(error){message.textContent=error.message;}}
+issue.addEventListener('click',async()=>{issue.disabled=true;message.textContent='Issuing from authoritative fixture…';try{const result=await request('/api/pepperpotts/demo/issue',{method:'POST'});message.textContent='Receipt state: '+result.status;if(result.verificationUrl){verify.href=result.verificationUrl;verify.hidden=false;}await load();}catch(error){message.textContent=error.message;issue.disabled=false;}});
+document.querySelectorAll('.lifecycle').forEach(button=>button.addEventListener('click',async()=>{message.textContent='Updating fictional record…';try{const result=await request('/api/pepperpotts/demo/status',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({status:button.dataset.status})});message.textContent='Fictional record marked '+result.status+'.';await load();}catch(error){message.textContent=error.message;}}));
+load();
 </script>
-</body>
-</html>
+</body></html>

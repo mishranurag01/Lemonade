@@ -20,6 +20,7 @@
     .then(data=>{
       const state=String(data.status||'UNKNOWN').toUpperCase();
       const messages={
+        ISSUED:'Official issuance record found. Compare these details and separately validate the PDF signature.',
         VALID:'Official record found — currently valid. Compare the details below with the document.',
         REVOKED:'This acknowledgement has been revoked. Do not treat it as currently valid.',
         REFUNDED:'The payment associated with this acknowledgement has been marked refunded.',
@@ -31,11 +32,8 @@
       set('record-status',state);
       set('record-issued',data.issuedAt?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(data.issuedAt))+' IST':'Not available');
       set('record-service',data.service);
-      set('record-customer',data.customerNameMasked || 'Not available');
-      set('record-mode',data.consultationMode || 'Not available');
       const amount=Number(data.amount);
       set('record-amount',Number.isSafeInteger(amount)&&amount>=0?new Intl.NumberFormat('en-IN',{style:'currency',currency:data.currency||'INR'}).format(amount/100):'Not available');
-      set('record-fingerprint',data.fingerprintSha256);
       fields.hidden=false;
     })
     .catch(error=>show('error',error.message||'Verification unavailable.'));

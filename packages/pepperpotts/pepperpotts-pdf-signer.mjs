@@ -9,9 +9,9 @@ import { P12Signer } from '@signpdf/signer-p12';
 // OpenSSL creates a PKCS#12 bundle in memory; no permanent copy is written.
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const defaultDir = path.join(repositoryRoot, '.pepperpotts-local', 'signing');
-export async function pepperpottsSignPdf(pdfBytes) {
-  const keyPath = process.env.PEPPERPOTTS_SIGNING_KEY || path.join(defaultDir, 'private-key.pem');
-  const certPath = process.env.PEPPERPOTTS_SIGNING_CERT || path.join(defaultDir, 'certificate.pem');
+export async function pepperpottsSignPdf(pdfBytes, options = {}) {
+  const keyPath = options.keyPath || process.env.PEPPERPOTTS_SIGNING_KEY || path.join(defaultDir, 'private-key.pem');
+  const certPath = options.certPath || process.env.PEPPERPOTTS_SIGNING_CERT || path.join(defaultDir, 'certificate.pem');
   await Promise.all([fs.access(keyPath), fs.access(certPath)]);
   const result = spawnSync('openssl', [
     'pkcs12', '-export', '-inkey', keyPath, '-in', certPath,

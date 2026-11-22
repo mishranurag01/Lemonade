@@ -67,6 +67,19 @@ function receiptMoney(amountMinor, currency) {
     style: 'currency', currency, currencyDisplay: 'code'
   }).format(amountMinor / 100).replace(/\\s+/gu, ' ');
 }
+export function pepperpottsPaymentRows(payment) {
+  const total = payment.amountMinor;
+  const discount = payment.discountMinor || 0;
+  const tax = payment.taxMinor || 0;
+  const subtotal = payment.subtotalMinor ?? total + discount - tax;
+  const rows = [
+    ['Subtotal', receiptMoney(subtotal, payment.currency)],
+    ['Discount', receiptMoney(discount, payment.currency)]
+  ];
+  if (tax > 0) rows.push(['Tax charged', receiptMoney(tax, payment.currency)]);
+  rows.push(['Total Paid', receiptMoney(total, payment.currency)]);
+  return rows;
+}
 export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate, sign = false }) {
   pepperpottsValidateBooking(booking);
   const original = await fs.readFile(TEMPLATE); // Use the actual user-uploaded PDF, never redraw its artwork.
@@ -115,14 +128,7 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   line('Payment Method', booking.payment.method || 'Not specified');
   line('Transaction Reference', booking.payment.transactionReference);
   line('Payment Status', 'Verified');
-  const total = booking.payment.amountMinor;
-  const discount = booking.payment.discountMinor || 0;
-  const tax = booking.payment.taxMinor || 0;
-  const subtotal = booking.payment.subtotalMinor ?? total + discount - tax;
-  line('Subtotal', receiptMoney(subtotal, booking.payment.currency));
-  line('Discount', receiptMoney(discount, booking.payment.currency));
-  line('Tax (if applicable)', receiptMoney(tax, booking.payment.currency));
-  line('Total Paid', receiptMoney(total, booking.payment.currency));
+  for (const [label, value] of pepperpottsPaymentRows(booking.payment)) line(label, value);
   if (y < 172) throw new Error('Receipt content exceeds available letterhead area; no clipping allowed');
   // One aligned verification band: the left column explains the record and
   // the right column contains the QR. Leave the letterhead artwork untouched.
