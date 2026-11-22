@@ -117,21 +117,57 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   line('Tax (if applicable)', pepperpottsMoney(tax, booking.payment.currency));
   line('Total Paid', pepperpottsMoney(total, booking.payment.currency));
   if (y < 172) throw new Error('Receipt content exceeds available letterhead area; no clipping allowed');
-  const qrPng = await QRCode.toBuffer(verificationUrl, { type:'png', width:220, margin:1, errorCorrectionLevel:'M' });
+  // One aligned verification band: the left column explains the record and
+  // the right column contains the QR. Leave the letterhead artwork untouched.
+  const footerTop = 165;
+  const qrSize = 68;
+  const qrX = width - x - qrSize;
+  page.drawLine({
+    start: { x, y: footerTop }, end: { x: width - x, y: footerTop },
+    thickness: 0.6, color: gold
+  });
+  page.drawText('ISSUANCE & VERIFICATION', {
+    x, y: 151, size: 9, font: bold, color: gold
+  });
+  page.drawText('Payment verified; booking accepted.', {
+    x, y: 137, size: 8.3, font: regular, color: ink
+  });
+  page.drawText('Not proof of consultation, diagnosis or service delivery.', {
+    x, y: 124, size: 7.5, font: regular, color: ink
+  });
+  const qrPng = await QRCode.toBuffer(verificationUrl, {
+    type: 'png', width: 220, margin: 1, errorCorrectionLevel: 'M'
+  });
   const qr = await pdf.embedPng(qrPng);
-  page.drawImage(qr, { x: width - 153, y: 107, width: 75, height: 75 });
-  page.drawText('Verify on official record', { x: width - 167, y: 96, size: 7, font: regular, color: ink });
-  page.drawText('Electronically issued after verified payment and service acceptance.', { x, y: 141, size: 8, font: regular, color: ink });
-  page.drawText('Not a prescription, diagnosis, consultation record or proof of service delivery.', { x, y: 126, size: 7.6, font: regular, color: ink });
+  page.drawImage(qr, { x: qrX, y: 91, width: qrSize, height: qrSize });
+  const qrCaption = 'SCAN TO VERIFY';
+  page.drawText(qrCaption, {
+    x: qrX + (qrSize - bold.widthOfTextAtSize(qrCaption, 7)) / 2,
+    y: 81, size: 7, font: bold, color: ink
+  });
   if (sign) {
-    // Visual indicator is covered by the subsequent PDF signature. Trust the embedded
-    // cryptographic signature for integrity; this graphic is not a validation result.
-    page.drawCircle({ x: x + 6, y: 112, size: 6, color: signedGreen });
-    page.drawLine({ start: { x: x + 3, y: 112 }, end: { x: x + 5, y: 110 }, thickness: 1.3, color: rgb(1, 1, 1) });
-    page.drawLine({ start: { x: x + 5, y: 110 }, end: { x: x + 9, y: 115 }, thickness: 1.3, color: rgb(1, 1, 1) });
-    page.drawText('Digitally signed - verify signature integrity in a PDF validator', { x: x + 17, y: 109, size: 7.4, font: regular, color: signedGreen });
+    // This mark is a visual issuance cue, NOT proof that a viewer has
+    // validated the embedded CMS signature or trusted its certificate.
+    const cx = x + 8, cy = 103;
+    page.drawCircle({ x: cx, y: cy, size: 8, color: signedGreen });
+    page.drawLine({
+      start: { x: cx - 4, y: cy }, end: { x: cx - 1, y: cy - 3 },
+      thickness: 1.5, color: rgb(1, 1, 1)
+    });
+    page.drawLine({
+      start: { x: cx - 1, y: cy - 3 }, end: { x: cx + 5, y: cy + 4 },
+      thickness: 1.5, color: rgb(1, 1, 1)
+    });
+    page.drawText('DIGITALLY SIGNED', {
+      x: x + 23, y: 106, size: 8.3, font: bold, color: signedGreen
+    });
+    page.drawText('Validate the PDF signature to check document integrity.', {
+      x: x + 23, y: 94, size: 7.2, font: regular, color: ink
+    });
   } else {
-    page.drawText('Unsigned development acknowledgement.', { x, y: 111, size: 7.4, font: regular, color: ink });
+    page.drawText('UNSIGNED DEVELOPMENT PREVIEW', {
+      x, y: 103, size: 8, font: bold, color: ink
+    });
   }
   pdf.setTitle('Payment & Service Acknowledgement — '+booking.reference);
   pdf.setSubject('PurvaPhalguni verified payment and accepted booking acknowledgement');
