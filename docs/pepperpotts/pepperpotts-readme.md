@@ -4,7 +4,7 @@
 
 Pepperpotts is an independently testable acknowledgement backend and localhost demonstration. It overlays the repository's original `PurvaPhalguni Letterhead.pdf`; it does not redraw or replace the letterhead. PDFs use bundled Liberation Serif, remain A4, are generated on demand, receive an embedded CMS signature, and are independently verified before the server returns them. Generated customer PDFs and signing keys are never public assets or adapter records.
 
-This branch is **not production-ready** and is not connected to PurvaPhalguni. The development adapter, loopback session, JSON index, in-memory rate limiter, and development certificate are deliberately local-only.
+This branch is **not production-ready** and is not connected to PurvaPhalguni. The development adapter, loopback session, JSON index, in-memory rate limiter, and development certificate are deliberately local-only. `pepperpotts-firestore-adapter.mjs` is a testable server-side production adapter boundary, not a deployed route or configured Firebase connection.
 
 ## Run on Jack (Ubuntu, Node.js 24)
 
@@ -49,5 +49,11 @@ Before integration, provide and validate:
 4. Managed signing keys/certificate outside source/public storage, certificate trust policy, rotation, and operational monitoring.
 5. HTTPS official-domain routes, authenticated PDF delivery, safe 404/denial behavior, and security/logging review.
 6. Legal/tax review of acknowledgement wording and any future GST configuration.
+
+## Server adapter boundary
+
+`pepperpotts-firestore-adapter.mjs` reads the public booking-reference index, booking, reconciled manual payment claim, and matched bank transaction through Firebase Admin transactions. It requires the host to inject the same `assertBankEvidence` and `receiptFromEvidence` functions used by the Node API, so a browser payment flag or UTR claim cannot become `VERIFIED`. It accepts service acceptance and ledger dates only from explicit host resolvers. No acceptance event or ledger date is inferred from appointment confirmation or bank verification; missing values leave the booking ineligible. The default tax breakdown is zero; a host may inject a reviewed breakdown that balances to the paid amount. The adapter never calculates GST.
+
+Issuance and token-hash index records use deterministic Firestore document IDs and transactional creation. The random verification token is stored only through injected `protectToken`/`recoverToken` functions; production must connect these to a managed key service. Lifecycle changes update the record and append a subcollection audit event transactionally. Firebase Admin bypasses Firestore client rules, so the hosting API must still verify a fresh Firebase ID token, derive UID from it, enforce owner/admin policy, and use safe denial responses. The current branch does not provide that API route, admin policy, managed key service, distributed rate limiter, or production deployment configuration.
 
 Do not transfer the root demo UI, `.pepperpotts-local/`, development keys, or the JSON development adapter into a production deployment.
