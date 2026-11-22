@@ -6,7 +6,7 @@ import QRCode from 'qrcode';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
-import { pepperpottsMoney, pepperpottsDate, pepperpottsValidateBooking } from './pepperpotts-contracts.mjs';
+import { pepperpottsDate, pepperpottsValidateBooking } from './pepperpotts-contracts.mjs';
 
 // Resolve from this module, not process.cwd() (npm --prefix changes the working directory).
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..', 'PurvaPhalguni Letterhead.pdf');
@@ -60,6 +60,13 @@ function fit(text, max = 82) {
   const printable = value.normalize('NFKD').replace(/[^\x20-\x7E]/g, '-');
   return printable.length > max ? printable.slice(0, max - 3) + '...' : printable;
 }
+// Use an ASCII currency code in the PDF so a missing currency glyph cannot
+// silently become a misleading minus sign (e.g. the INR rupee symbol).
+function receiptMoney(amountMinor, currency) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency, currencyDisplay: 'code'
+  }).format(amountMinor / 100).replace(/\\s+/gu, ' ');
+}
 export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate, sign = false }) {
   pepperpottsValidateBooking(booking);
   const original = await fs.readFile(TEMPLATE); // Use the actual user-uploaded PDF, never redraw its artwork.
@@ -112,10 +119,10 @@ export async function pepperpottsRenderPdf(booking, { verificationUrl, issueDate
   const discount = booking.payment.discountMinor || 0;
   const tax = booking.payment.taxMinor || 0;
   const subtotal = booking.payment.subtotalMinor ?? total + discount - tax;
-  line('Subtotal', pepperpottsMoney(subtotal, booking.payment.currency));
-  line('Discount', pepperpottsMoney(discount, booking.payment.currency));
-  line('Tax (if applicable)', pepperpottsMoney(tax, booking.payment.currency));
-  line('Total Paid', pepperpottsMoney(total, booking.payment.currency));
+  line('Subtotal', receiptMoney(subtotal, booking.payment.currency));
+  line('Discount', receiptMoney(discount, booking.payment.currency));
+  line('Tax (if applicable)', receiptMoney(tax, booking.payment.currency));
+  line('Total Paid', receiptMoney(total, booking.payment.currency));
   if (y < 172) throw new Error('Receipt content exceeds available letterhead area; no clipping allowed');
   // One aligned verification band: the left column explains the record and
   // the right column contains the QR. Leave the letterhead artwork untouched.
